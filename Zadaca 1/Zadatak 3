@@ -1,0 +1,102 @@
+// TP 2021/2022: Zadaća 1, Zadatak 3
+#include <cmath>
+#include <cstring>
+#include <iostream>
+#include <vector>
+
+bool DaLiSeDameNapadaju(std::vector<std::vector<bool>> M) {
+  int brojRedova = M.size();
+  if(brojRedova == 0) return false;
+  int maxduzina = 0;
+  for (int i = 0; i < brojRedova; i++) {
+    if (M.at(i).size() > maxduzina) {
+      maxduzina = M.at(i).size();
+    }
+  }
+  for (int i = 0; i < M.size(); i++) {
+    M.at(i).resize(maxduzina);
+  }
+  int brojKolona = M.at(0).size();
+  int veci = brojKolona;
+  if (brojRedova > brojKolona)
+    veci = brojRedova;
+  for (int i = 0; i < brojRedova; i++) {
+    for (int j = 0; j < brojKolona; j++) {
+      if (M.at(i).at(j) == 1) {
+        for (int k = 0; k < brojRedova; k++) {
+          if (M.at(k).at(j) == 1 && k != i) {
+            return true;
+          }
+        }
+        for (int k = 0; k < brojKolona; k++) {
+          if (M.at(i).at(k) == 1 && k != j) {
+            return true;
+          }
+        }
+        int k = 1;
+        for (;;) {
+          if (i + k < brojRedova && j + k < brojKolona) {
+            if (M.at(i + k).at(j + k) == 1) {
+              return true;
+            }
+          }
+          if (i - k >= 0 && j - k >= 0) {
+            if (M.at(i - k).at(j - k) == 1) {
+              return true;
+            }
+          }
+          if (i + k < brojRedova && j - k >= 0) {
+            if (M.at(i + k).at(j - k) == 1) {
+              return true;
+            }
+          }
+          if (i - k >= 0 && j + k < brojKolona) {
+            if (M.at(i - k).at(j + k) == 1) {
+              return true;
+            }
+          }
+          if (k > veci) {
+            break;
+          }
+          k++;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+int main() {
+  std::cout << "Unesite opis sahovske ploce:" << std::endl
+            << "(Q za kraljicu, bilo sta drugo za prazno polje, ENTER naprazno "
+               "za kraj unosa):"
+            << std::endl;
+  std::vector<std::vector<bool>> M;
+  int size = 0, duzina, j = 0;
+  for (;;) {
+    size++;
+    M.resize(size);
+    char red[100];
+    std::cin.getline(red, sizeof red);
+    duzina = std::strlen(red);
+    M.at(j).resize(duzina);
+    for (int i = 0; i < duzina; i++) {
+      if (red[i] == 'Q') {
+        M.at(j).at(i) = true;
+      } else {
+        M.at(j).at(i) = false;
+      }
+    }
+    j++;
+    if (duzina == 0) {
+      size--;
+      break;
+    }
+  }
+  M.resize(size);
+  if (DaLiSeDameNapadaju(M))
+    std::cout << "Dame se medjusobno napadaju.";
+  else
+    std::cout << "Dame se medjusobno ne napadaju.";
+  return 0;
+}
