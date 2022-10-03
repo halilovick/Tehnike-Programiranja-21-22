@@ -72,3 +72,4 @@ int main() {
               << CiklickaPermutacija(v1, v2) << ".";
   return 0;
 }
+
