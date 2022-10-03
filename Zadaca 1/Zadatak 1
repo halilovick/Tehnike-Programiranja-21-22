@@ -1,0 +1,74 @@
+// TP 2021/2022: Zadaća 1, Zadatak 1
+#include <iostream>
+#include <vector>
+
+int CiklickaPermutacija(std::vector<int> v1, std::vector<int> v2) {
+  int k, j;
+  if (v1.size() == 0 && v2.size() == 0) {
+    return 0;
+  }
+  for (int i = 0; i < v1.size(); i++) {
+    j = 0;
+    if (v1.at(i) == v2.at(j)) {
+      k = i;
+      while (v1.at(k) == v2.at(j)) {
+        if ((k >= v1.size() - 1) || (j >= v2.size() - 1)) {
+          j++;
+          break;
+        }
+        k++;
+        j++;
+      }
+      if ((k >= v1.size() - 1) || (j >= v2.size() - 1)) {
+        break;
+      }
+    }
+  }
+  int prvi = j;
+  if (v2.size() - j != 0) {
+    k = 0;
+    while (v1.at(k) == v2.at(j)) {
+      j++;
+      k++;
+      if (k + prvi == v2.size()) {
+        return k;
+      }
+    }
+    if (v1.at(k) != v2.at(j)) {
+      return -1;
+    }
+  }
+  return (v1.size() - j);
+}
+
+std::vector<int> UnesiVektor(std::vector<int> v) {
+  int broj, vel = 0;
+  for (;;) {
+    std::cin >> broj;
+    if (std::cin) {
+      v.push_back(broj);
+      vel++;
+    } else {
+      break;
+    }
+  }
+  v.resize(vel);
+  std::cin.clear();
+  std::cin.ignore(10000, '\n');
+  return v;
+}
+
+int main() {
+  std::vector<int> v1;
+  std::cout << "Prva sekvenca: ";
+  v1 = UnesiVektor(v1);
+  std::vector<int> v2;
+  std::cout << "Druga sekvenca: ";
+  v2 = UnesiVektor(v2);
+  if (CiklickaPermutacija(v1, v2) == -1)
+    std::cout << "Druga sekvenca nije ciklicka permutacija prve.";
+  else
+    std::cout << "Druga sekvenca je ciklicka permutacija prve s pomakom "
+              << CiklickaPermutacija(v1, v2) << ".";
+  return 0;
+}
