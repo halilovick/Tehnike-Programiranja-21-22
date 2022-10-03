@@ -1,0 +1,127 @@
+// TP 2021/2022: Zadaća 5, Zadatak 4
+#include <cmath>
+#include <iostream>
+#include <vector>
+
+class Spremnik {
+protected:
+  double m;
+  std::string imePredmeta;
+
+public:
+  Spremnik(const double &x, std::string ime) : m(x), imePredmeta(ime) {}
+  virtual ~Spremnik() {}
+  double DajTezinu() const { return m; }
+  virtual double DajUkupnuTezinu() const = 0;
+  virtual void Ispisi() const = 0;
+  virtual Spremnik *DajKopiju() const = 0;
+};
+
+class Bure : public Spremnik {
+  double bureTezina, zapremina;
+
+public:
+  Bure(const double &m, std::string ime, const double &bureTezina,
+       const double &zapremina)
+      : Spremnik(m, ime), bureTezina(bureTezina), zapremina(zapremina) {}
+  double DajUkupnuTezinu() const override {
+    return (zapremina / 1000 * bureTezina) + DajTezinu();
+  }
+  void Ispisi() const override {
+    std::cout << "Vrsta spremnika: Bure\nSadrzaj: " << this->imePredmeta
+              << "\nVlastita tezina: " << this->DajTezinu()
+              << " (kg)\nSpecificna tezina tecnosti: " << bureTezina
+              << " (kg/m^3)\nZapremina tecnosti: " << zapremina
+              << " (l)\nUkupna tezina: " << DajUkupnuTezinu() << " (kg)"
+              << std::endl;
+  }
+  Spremnik *DajKopiju() const override { return new Bure(*this); }
+};
+
+class Sanduk : public Spremnik {
+  std::vector<double> mase;
+
+public:
+  Sanduk(const double &m, std::string ime, std::vector<double> V)
+      : Spremnik(m, ime), mase(V) {}
+  double DajUkupnuTezinu() const override {
+    double S(0);
+    for (int i = 0; i < mase.size(); i++) {
+      S += mase[i];
+    }
+    S += DajTezinu();
+    return S;
+  }
+  void Ispisi() const override {
+    std::cout << "Vrsta spremnika: Sanduk\nSadrzaj: " << this->imePredmeta
+              << "\nTezine predmeta: ";
+    for (int i = 0; i < mase.size(); i++)
+      std::cout << mase[i] << " ";
+    std::cout << "(kg)\nVlastita tezina: " << DajTezinu()
+              << " (kg)\nUkupna tezina: " << DajUkupnuTezinu() << " (kg)"
+              << std::endl;
+  }
+  Spremnik *DajKopiju() const override { return new Sanduk(*this); }
+};
+
+class Vreca : public Spremnik {
+  double vrecaTezina;
+
+public:
+  Vreca(const double &m, std::string ime, const double &masa)
+      : Spremnik(m, ime), vrecaTezina(masa) {}
+  double DajUkupnuTezinu() const override { return vrecaTezina + DajTezinu(); }
+  void Ispisi() const override {
+    std::cout << "Vrsta spremnika: Vreca\nSadrzaj: " << this->imePredmeta
+              << "\nVlastita tezina: " << this->DajTezinu()
+              << " (kg)\nTezina pohranjene materije: " << vrecaTezina
+              << " (kg)\nUkupna tezina: " << DajUkupnuTezinu() << " (kg)"
+              << std::endl;
+  }
+  Spremnik *DajKopiju() const override { return new Vreca(*this); }
+};
+
+class PolimorfniSpremnik {
+  Spremnik *ps;
+
+public:
+  PolimorfniSpremnik() : ps(nullptr) {}
+  PolimorfniSpremnik(const Spremnik &spremnik) : ps(spremnik.DajKopiju()) {}
+  PolimorfniSpremnik(const PolimorfniSpremnik &ps1) {
+    if (!ps1.ps)
+      ps = nullptr;
+    else
+      ps = ps1.ps->DajKopiju();
+  }
+  PolimorfniSpremnik(PolimorfniSpremnik &&ps1) {
+    ps = ps1.ps;
+    ps1.ps = nullptr;
+  }
+  ~PolimorfniSpremnik() { delete ps; }
+  double DajTezinu() const {
+    if (!ps)
+      throw std::logic_error("Nespecificiran spremnik");
+    return ps->DajTezinu();
+  }
+  double DajUkupnuTezinu() const {
+    if (!ps)
+      throw std::logic_error("Nespecificiran spremnik");
+    return ps->DajUkupnuTezinu();
+  }
+  void Ispisi() const {
+    if (!ps)
+      throw std::logic_error("Nespecificiran spremnik");
+    ps->Ispisi();
+  }
+  PolimorfniSpremnik &operator=(const PolimorfniSpremnik &spremnik){
+      Spremnik* temp = nullptr;
+      if(spremnik.ps != nullptr) temp = spremnik.ps->DajKopiju();
+      delete ps;
+      ps = temp;
+      return *this;
+  }
+};
+
+int main() {
+  return 0;
+}
