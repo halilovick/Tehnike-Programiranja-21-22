@@ -1,0 +1,135 @@
+// TP 2021/2022: Zadaća 3, Zadatak 1
+#include <cctype>
+#include <cmath>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <utility>
+#include <vector>
+
+auto IzracunajVektorW(std::vector<std::pair<double, double>> v, int n, int d) {
+  double proizvodProizvoda(1), suma(0);
+  std::vector<double> rez;
+  for (int i = 1; i <= n; i++) {
+    int max = std::max(1, i - d);
+    int min = std::min(i, n - d);
+    suma = 0;
+    for (int k = max; k <= min; k++) {
+      proizvodProizvoda = 1;
+      for (int j = k; j <= k + d; j++) {
+        if (j != i) {
+          double broj = 1. / (double)(v.at(i - 1).first - v.at(j - 1).first);
+          proizvodProizvoda *= broj;
+        }
+      }
+      // suma += (pow(-1, k - 1) * proizvodProizvoda);
+      if ((k - 1) % 2 == 0)
+        suma += proizvodProizvoda;
+      else
+        suma -= proizvodProizvoda;
+    }
+    rez.push_back(suma);
+  }
+  return rez;
+}
+
+auto BaricentricnaInterpolacija(std::vector<std::pair<double, double>> v,
+                                int d) {
+  int n = v.size();
+  if (d < 0 || d >= n || n == 0)
+    throw std::domain_error("Nedozvoljen red");
+  for (int i = 0; i < n - 1; i++) {
+    for (int j = i + 1; j < n; j++) {
+      if (v.at(i).first == v.at(j).first)
+        throw std::domain_error("Neispravni cvorovi");
+    }
+  }
+  auto W = IzracunajVektorW(v, n, d);
+  return [W, v](double x) {
+    double suma1(0), suma2(0);
+    for (int i = 0; i < v.size(); i++) {
+      if (x == v.at(i).first)
+        return v.at(i).second;
+      suma1 += (double)(W.at(i) * v.at(i).second) / (double)(x - v.at(i).first);
+      suma2 += (double)W.at(i) / (double)(x - v.at(i).first);
+    }
+    return (double)suma1 / suma2;
+  };
+}
+
+auto BaricentricnaInterpolacija(std::function<double(double)> f, double xmin,
+                                double xmax, double korak, int d) {
+  if (xmin > xmax || korak <= 0)
+    throw std::domain_error("Nekorektni parametri");
+  std::vector<std::pair<double, double>> rez;
+  for (auto it = xmin; it <= xmax; it += korak)
+    rez.push_back(std::make_pair(it, f(it)));
+  return BaricentricnaInterpolacija(rez, d);
+}
+
+int main() {
+  std::cout << "Odaberite opciju (1 - unos cvorova, 2 - aproksimacija): ";
+  int opcija(0);
+  std::cin >> opcija;
+  if (!std::cin || !opcija)
+    return 0;
+  if (opcija == 1) {
+    std::cout << "Unesite broj cvorova: ";
+    int n(0);
+    std::cin >> n;
+    std::cout << "Unesite cvorove kao parove x y: ";
+    std::vector<std::pair<double, double>> v(n);
+    for (int i = 0; i < n; i++) {
+      double x(0), y(0);
+      std::cin >> x >> y;
+      v.at(i).first = x;
+      v.at(i).second = y;
+      // v.push_back(std::make_pair(x,y));
+    }
+    std::cout << "Unesite red interpolacije: ";
+    int d(0);
+    std::cin >> d;
+    for (;;) {
+      try {
+        auto f = BaricentricnaInterpolacija(v, d);
+        std::cout << "Unesite argument (ili "
+                     "\"kraj\""
+                     " za kraj): ";
+        double argument(0);
+        std::cin >> argument;
+        if (!std::cin)
+          return 0;
+        std::cout << "f(" << argument << ") = " << f(argument) << std::endl;
+      } catch (std::domain_error e) {
+        std::cout << e.what();
+        return 0;
+      }
+    }
+  } else if (opcija == 2) {
+    double xmin(0), xmax(0), korak(0);
+    int d(0);
+    std::cout << "Unesite krajeve intervala i korak: ";
+    std::cin >> xmin >> xmax >> korak;
+    std::cout << "Unesite red interpolacije: ";
+    std::cin >> d;
+    auto f2 = [](double x) { return x * x + sin(x); };
+    for (;;) {
+      try {
+        auto f1 = BaricentricnaInterpolacija(
+            [](double x) { return x * x + sin(x); }, xmin, xmax, korak, d);
+        std::cout << "Unesite argument (ili \"kraj\" za kraj): ";
+        double argument(0);
+        std::cin >> argument;
+        if (!std::cin)
+          break;
+        std::cout << "f(" << argument << ") = " << f2(argument);
+        std::cout << " fapprox(" << argument << ") = " << f1(argument)
+                  << std::endl;
+      } catch (std::domain_error e) {
+        std::cout << e.what();
+        return 0;
+      }
+    }
+  }
+  return 0;
+}
