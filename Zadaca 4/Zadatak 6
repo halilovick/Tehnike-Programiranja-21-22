@@ -1,0 +1,305 @@
+// TP 2021/2022: Zadaća 4, Zadatak 6
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <stdexcept>
+
+struct Student {
+  int broj_indeksa, godina_studija;
+  std::string ime, prezime, adresa, telefon;
+
+public:
+  void IspisiStudenta() const {
+    std::cout << "Broj indeksa: " << broj_indeksa << std::endl;
+    std::cout << "Ime i prezime: " << ime << " " << prezime << std::endl;
+    std::cout << "Godina studija: " << godina_studija << std::endl;
+    std::cout << "Adresa: " << adresa << std::endl;
+    std::cout << "Broj telefona: " << telefon << std::endl;
+  }
+  std::string DajImePrezime() const { return ime + " " + prezime; }
+  int DajBrojIndeksa() const { return broj_indeksa; }
+  int DajGodinuStudija() const { return godina_studija; }
+  std::string DajAdresu() const { return adresa; }
+  std::string DajTelefon() const { return telefon; }
+};
+
+class Knjiga {
+  std::string naslov, ime_pisca, zanr;
+  int godina_izdavanja;
+  Student *zaduzenje;
+
+public:
+  Knjiga(std::string naslov, std::string pisac, std::string zanr, int godina) {
+    Knjiga::naslov = naslov;
+    Knjiga::ime_pisca = pisac;
+    Knjiga::zanr = zanr;
+    Knjiga::godina_izdavanja = godina;
+    Knjiga::zaduzenje = nullptr;
+  }
+  std::string DajNaslov() const { return naslov; }
+  std::string DajAutora() const { return ime_pisca; }
+  std::string DajZanr() const { return zanr; }
+  int DajGodinuIzdavanja() const { return godina_izdavanja; }
+  void ZaduziKnjigu(Student &s) { zaduzenje = &s; }
+  void RazduziKnjigu() {
+    if (DaLiJeZaduzena())
+      zaduzenje = nullptr;
+  }
+  bool DaLiJeZaduzena() const {
+    if (zaduzenje == nullptr)
+      return false;
+    return true;
+  }
+  Student &DajKodKogaJe() const {
+    if (Knjiga::zaduzenje == nullptr)
+      throw std::domain_error("Knjiga nije zaduzena");
+    return *Knjiga::zaduzenje;
+  }
+  Student *DajPokKodKogaJe() const { return Knjiga::zaduzenje; }
+  void Ispisi() const {
+    std::cout << "Naslov: " << DajNaslov();
+    std::cout << std::endl;
+    std::cout << "Pisac: " << DajAutora();
+    std::cout << std::endl;
+    std::cout << "Zanr: " << DajZanr();
+    std::cout << std::endl;
+    std::cout << "Godina izdavanja: " << DajGodinuIzdavanja();
+    std::cout << std::endl;
+  }
+  friend class Biblioteka;
+};
+
+class Biblioteka {
+  std::map<int, std::shared_ptr<Student>> mapakorisnika;
+  std::map<int, std::shared_ptr<Knjiga>> mapaknjiga;
+
+public:
+  Biblioteka(){};
+  Biblioteka(const Biblioteka &b) {
+    if (&b == this)
+      return;
+    for (auto k : b.mapakorisnika)
+      mapakorisnika[k.first] = std::make_shared<Student>(*k.second);
+    for (auto k : b.mapaknjiga)
+      mapaknjiga[k.first] = std::make_shared<Knjiga>(*k.second);
+  }
+  Biblioteka &operator=(const Biblioteka &b) {
+    if (&b == this)
+      return *this;
+    for (auto k : b.mapakorisnika)
+      mapakorisnika[k.first] = std::make_shared<Student>(*k.second);
+    for (auto k : b.mapaknjiga)
+      mapaknjiga[k.first] = std::make_shared<Knjiga>(*k.second);
+    return *this;
+  }
+  Biblioteka &operator=(Biblioteka &b) {
+    for (auto it = b.mapakorisnika.begin(); it != b.mapakorisnika.end(); it++)
+      mapakorisnika[it->first] =
+          std::make_shared<Student>(*b.mapakorisnika[it->first]);
+    for (auto it = b.mapaknjiga.begin(); it != b.mapaknjiga.end(); it++) {
+      auto knjiga1(b.mapaknjiga[it->first]);
+      mapaknjiga[it->first] = std::make_shared<Knjiga>(
+          knjiga1->DajNaslov(), knjiga1->DajAutora(), knjiga1->DajZanr(),
+          knjiga1->DajGodinuIzdavanja());
+    }
+    return *this;
+  }
+  Biblioteka(Biblioteka &&b) {
+    if (&b == this)
+      return;
+    for (auto k : b.mapakorisnika)
+      mapakorisnika[k.first] = std::make_shared<Student>(*k.second);
+    for (auto k : b.mapaknjiga)
+      mapaknjiga[k.first] = std::make_shared<Knjiga>(*k.second);
+  }
+  void RegistrirajNovogStudenta(int broj_indeksa, std::string ime,
+                                std::string prezime, int godina_studija,
+                                std::string adresa, std::string broj_telefona) {
+    if (mapakorisnika.find(broj_indeksa) != mapakorisnika.end())
+      throw std::logic_error("Vec postoji student s tim brojem indeksa");
+    mapakorisnika.insert({broj_indeksa, std::make_shared<Student>()});
+    auto it = mapakorisnika.find(broj_indeksa);
+    it->second->broj_indeksa = broj_indeksa;
+    it->second->ime = ime;
+    it->second->prezime = prezime;
+    it->second->godina_studija = godina_studija;
+    it->second->adresa = adresa;
+    it->second->telefon = broj_telefona;
+  }
+  void RegistrirajNovuKnjigu(int evidencijski_broj, std::string naslov,
+                             std::string ime_pisca, std::string zanr,
+                             int godina_izdavanja) {
+    if (mapaknjiga.find(evidencijski_broj) != mapaknjiga.end())
+      throw std::logic_error("Knjiga s tim evidencijskim brojem vec postoji");
+    mapaknjiga.insert(
+        {evidencijski_broj,
+         std::make_shared<Knjiga>(naslov, ime_pisca, zanr, godina_izdavanja)});
+  }
+  Student &NadjiStudenta(int broj_indeksa) const {
+    if (mapakorisnika.find(broj_indeksa) == mapakorisnika.end())
+      throw std::logic_error("Student nije nadjen");
+    auto it = mapakorisnika.find(broj_indeksa);
+    return *it->second;
+  }
+  Knjiga &NadjiKnjigu(int evidencijski_broj) const {
+    if (mapaknjiga.find(evidencijski_broj) == mapaknjiga.end())
+      throw std::logic_error("Knjiga nije nadjena");
+    auto it = mapaknjiga.find(evidencijski_broj);
+    return *it->second;
+  }
+  void IzlistajStudente() const {
+    for (auto i = mapakorisnika.begin(); i != mapakorisnika.end(); i++) {
+      i->second->Student::IspisiStudenta();
+      // std::cout << std::endl;
+    }
+  }
+  void IzlistajKnjige() const {
+    for (auto i = mapaknjiga.begin(); i != mapaknjiga.end(); i++) {
+      std::cout << "Evidencijski broj: " << i->first;
+      std::cout << std::endl;
+      i->second->Ispisi();
+      if (i->second->DaLiJeZaduzena()) {
+        std::cout << "Zaduzena kod studenta: "
+                  << i->second->DajKodKogaJe().DajImePrezime() << " ("
+                  << i->second->DajKodKogaJe().DajBrojIndeksa() << ")"
+                  << std::endl;
+      }
+      // std::cout << std::endl;
+    }
+  }
+  void ZaduziKnjigu(int evidencijski_broj, int broj_indeksa) {
+    if (mapaknjiga.find(evidencijski_broj) == mapaknjiga.end())
+      throw std::logic_error("Knjiga nije nadjena");
+    if (mapakorisnika.find(broj_indeksa) == mapakorisnika.end())
+      throw std::logic_error("Student nije nadjen");
+    if (mapaknjiga[evidencijski_broj]->Knjiga::DaLiJeZaduzena())
+      throw std::logic_error("Knjiga vec zaduzena");
+    /*for (auto i = mapaknjiga.begin(); i != mapaknjiga.end(); i++) {
+      if (i->second->DaLiJeZaduzena() &&
+          i->second->DajKodKogaJe().Student::DajImePrezime() ==
+              mapakorisnika[broj_indeksa]->Student::DajImePrezime())
+        throw std::logic_error("Student je vec zaduzio knjigu");
+    }*/
+    mapaknjiga[evidencijski_broj]->Knjiga::ZaduziKnjigu(
+        *mapakorisnika[broj_indeksa]);
+  }
+  void RazduziKnjigu(int evidencijski_broj) {
+    if (mapaknjiga.find(evidencijski_broj) == mapaknjiga.end())
+      throw std::logic_error("Knjiga nije nadjena");
+    if (mapaknjiga[evidencijski_broj]->Knjiga::DaLiJeZaduzena() == false)
+      throw std::logic_error("Knjiga nije zaduzena");
+    mapaknjiga[evidencijski_broj]->Knjiga::RazduziKnjigu();
+  }
+  void PrikaziZaduzenja(int broj_indeksa) const {
+    if (mapakorisnika.find(broj_indeksa) == mapakorisnika.end())
+      throw std::logic_error("Student nije nadjen");
+    bool zaduzen = false;
+    for (auto i = mapaknjiga.begin(); i != mapaknjiga.end(); i++) {
+      if (i->second->DaLiJeZaduzena())
+        zaduzen = true;
+    }
+    if (zaduzen == false) {
+      std::cout << "Nema zaduzenja za tog studenta!";
+      return;
+    }
+    for (auto i = mapaknjiga.begin(); i != mapaknjiga.end(); i++) {
+      if (i->second->DaLiJeZaduzena()) {
+        std::cout << "Evidencijski broj: " << i->first << std::endl;
+        i->second->Ispisi();
+      }
+    }
+  }
+};
+
+int main() {
+  Biblioteka b;
+  std::cout << "1 za unos nove knjige\n"
+            << "2 za pretragu knjiga\n"
+            << "3 za izlistavanje knjiga\n"
+            << "4 za zaduzivanje knjige\n"
+            << "5 za razduzivanje knjige\n"
+            << "6 za prikazivanje zaduzenja\n"
+            << "7 za kraj\n";
+  for (;;) {
+    int n;
+    std::cout << "Unesite broj: ";
+    std::cin >> n;
+    if (n == 7)
+      return 0;
+    if (n == 1) {
+      std::cout << "Registriranje nove knjige\n";
+      int evidencijski_broj, godina_izdavanja;
+      std::string naslov, ime, zanr;
+      std::cout << "Unesite evidencijski broj knjige: ";
+      std::cin >> evidencijski_broj;
+      std::cout << "Unesite naslov knjige: ";
+      std::cin.clear();
+      std::cin.ignore(1000, '\n');
+      std::getline(std::cin, naslov);
+      std::cout << "Unesite ime pisca: ";
+      std::cin.clear();
+      std::getline(std::cin, ime);
+      std::cout << "Unesite zanr: ";
+      std::cin.clear();
+      std::getline(std::cin, zanr);
+      std::cout << "Unesite godinu izdavanja: ";
+      std::cin >> godina_izdavanja;
+      try {
+        b.RegistrirajNovuKnjigu(evidencijski_broj, naslov, ime, zanr,
+                                godina_izdavanja);
+      } catch (std::logic_error e) {
+        std::cout << e.what();
+      }
+      std::cout << "Knjiga uspjesno registrovana!\n";
+    } else if (n == 2) {
+      std::cout << "Pretraga knjiga po evidencijskom broju\n"
+                << "Unesite evidencijski broj knjige koju trazite: ";
+      int broj;
+      std::cin >> broj;
+      try {
+        auto it = b.NadjiKnjigu(broj);
+        std::cout << "Knjiga:\n";
+        it.Ispisi();
+      } catch (std::logic_error e) {
+        std::cout << e.what();
+      }
+    } else if (n == 3) {
+      b.IzlistajKnjige();
+    } else if (n == 4) {
+      std::cout << "Zaduzivanje knjige\n"
+                << "Unesite evidencijski broj knjige i vas broj indeksa: ";
+      int indeks, evidencijski;
+      std::cin >> evidencijski >> indeks;
+      try {
+        b.ZaduziKnjigu(evidencijski, indeks);
+      } catch (std::logic_error e) {
+        std::cout << e.what();
+      }
+      std::cout << "Knjiga uspjesno zaduzena!\n";
+    } else if (n == 5) {
+      std::cout << "Razduzivanje knjige\n"
+                << "Unesite evidencijski broj knjige koju razduzujute: ";
+      int broj;
+      std::cin >> broj;
+      try {
+        b.RazduziKnjigu(broj);
+      } catch (std::logic_error e) {
+        std::cout << e.what();
+      }
+      std::cout << "Knjiga uspjesno razduzena!\n";
+    } else if (n == 6) {
+      std::cout << "Prikazivanje zaduzenja\n"
+                << "Unesite broj indeksa studenta: ";
+      int broj;
+      std::cin >> broj;
+      try {
+        b.PrikaziZaduzenja(broj);
+      } catch (std::logic_error e) {
+        std::cout << e.what();
+      }
+    }
+  }
+  return 0;
+}
