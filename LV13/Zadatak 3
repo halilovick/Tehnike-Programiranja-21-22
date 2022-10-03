@@ -1,11 +1,14 @@
 /*
-    TP 16/17 (LV 13, Zadatak 4)
+    TP 16/17 (LV 13, Zadatak 3)
         Autotestove pisala Ivona Ivkovic. Sva pitanja, sugestije, prijave
    gresaka slati na mail iivkovic2@etf.unsa.ba
 
         Vrsit ce se provjera na prepisivanje tutorijala (na kraju semestra)
 */
+#include <algorithm>
 #include <iostream>
+#include <vector>
+
 class ApstraktniStudent {
 protected:
   std::string ime, prezime;
@@ -77,74 +80,82 @@ public:
   }
 };
 
-class Student {
-  ApstraktniStudent *student;
-  void Provjera() const {
-    if (!student)
-      throw std::logic_error("Nespecifican lik!");
-  }
+class Fakultet {
+  std::vector<ApstraktniStudent *> v;
 
 public:
-  Student() : student(nullptr){};
-  ~Student() { delete student; };
-  Student(const Student &s) {
-    if (s.student == nullptr)
-      student = nullptr;
-    else
-      student = s.student->DajKopiju();
+  Fakultet(){};
+  ~Fakultet() {
+    for (int i = 0; i < v.size(); i++)
+      delete v[i];
   }
-  Student(const ApstraktniStudent &s) : student(s.DajKopiju()){};
-  Student(Student &&s) {
-    student = s.student;
-    s.student = nullptr;
+  Fakultet(const Fakultet &faks) {
+    for (int i = 0; i < faks.v.size(); i++)
+      v.push_back(faks.v[i]->DajKopiju());
   }
-  Student &operator=(const Student &s) {
-    delete student;
-    if (s.student == nullptr)
-      student = nullptr;
-    else
-      student = s.student->DajKopiju();
+  Fakultet(Fakultet &&faks) {
+    v = faks.v;
+    faks.v.resize(0);
+  }
+  Fakultet &operator=(const Fakultet &faks) {
+    for (int i = 0; i < v.size(); i++)
+      delete v[i];
+    v.resize(0);
+    for (int i = 0; i < faks.v.size(); i++)
+      v.push_back(faks.v[i]->DajKopiju());
     return *this;
   }
-  Student &operator=(Student &&s) {
-    std::swap(s.student, student);
+  Fakultet &operator=(Fakultet &&faks) {
+    for (int i = 0; i < v.size(); i++)
+      delete v[i];
+    v.resize(0);
+    std::swap(v, faks.v);
     return *this;
   }
-  std::string DajIme() {
-    Provjera();
-    return student->DajIme();
+  void UpisiStudenta(std::string ime, std::string prezime, int indeks) {
+    for (int i = 0; i < v.size(); i++)
+      if (v[i]->DajBrojIndeksa() == indeks)
+        throw std::logic_error("Student sa zadanim brojem indeksa vec postoji");
+    v.push_back(new StudentBachelor(ime, prezime, indeks));
   }
-  std::string DajPrezime() {
-    Provjera();
-    return student->DajPrezime();
+  void UpisiStudenta(std::string ime, std::string prezime, int indeks,
+                     int godina) {
+    for (int i = 0; i < v.size(); i++)
+      if (v[i]->DajBrojIndeksa() == indeks)
+        throw std::logic_error("Student sa zadanim brojem indeksa vec postoji");
+    v.push_back(new StudentMaster(ime, prezime, indeks, godina));
   }
-  int DajBrojIndeksa() {
-    Provjera();
-    return student->DajBrojIndeksa();
+  void ObrisiStudenta(int indeks) {
+    for (int i = 0; i < v.size(); i++)
+      if (v[i]->DajBrojIndeksa() == indeks) {
+        delete v[i];
+        v.erase(std::find(v.begin(), v.end(), v[i]));
+        return;
+      }
+    throw std::logic_error("Student sa zadanim brojem indeksa ne postoji");
   }
-  int DajBrojPolozenih() {
-    Provjera();
-    return student->DajBrojPolozenih();
+  const ApstraktniStudent &operator[](int indeks) const {
+    for (int i = 0; i < v.size(); i++)
+      if (v[i]->DajBrojIndeksa() == indeks)
+        return *v[i];
+    throw std::logic_error("Student sa zadanim brojem indeksa ne postoji");
   }
-  double DajProsjek() {
-    Provjera();
-    return student->DajProsjek();
+  ApstraktniStudent &operator[](int indeks) {
+    for (int i = 0; i < v.size(); i++)
+      if (v[i]->DajBrojIndeksa() == indeks)
+        return *v[i];
+    throw std::logic_error("Student sa zadanim brojem indeksa ne postoji");
   }
-  void RegistrirajIspit(int ocjena) {
-    Provjera();
-    student->RegistrirajIspit(ocjena);
-  }
-  void PonistiOcjene() {
-    Provjera();
-    student->PonistiOcjene();
-  }
-  void IspisiPodatke() const {
-    Provjera();
-    student->IspisiPodatke();
-  }
-  ApstraktniStudent *DajKopiju() const {
-    Provjera();
-    return student->DajKopiju();
+  void IspisiSveStudente() const {
+    auto temp = v;
+    std::sort(temp.begin(), temp.end(), [](auto a, auto b) {
+      if (a->DajProsjek() != b->DajProsjek())
+        return a->DajProsjek() > b->DajProsjek();
+      else
+        return a->DajBrojIndeksa() < b->DajBrojIndeksa();
+    });
+    for (int i = 0; i < temp.size(); i++)
+      temp[i]->IspisiPodatke();
   }
 };
 
