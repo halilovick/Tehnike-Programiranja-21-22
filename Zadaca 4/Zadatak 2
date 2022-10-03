@@ -1,0 +1,330 @@
+// TP 2021/2022: Zadaća 4, Zadatak 2
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <tuple>
+#include <vector>
+
+const double pi = 4 * std::atan(1);
+const double e = 10e-10;
+
+double Udaljenost(double x1, double y1, double z1, double x2, double y2,
+                  double z2) {
+  return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) +
+              (z2 - z1) * (z2 - z1));
+}
+
+bool Jednaki(double x, double y) {
+  return std::fabs(x - y) <= e * (std::fabs(x) + std::fabs(y));
+}
+
+class NepreklapajucaKugla {
+  double x, y, z, r;
+  NepreklapajucaKugla *prethodna;
+  static NepreklapajucaKugla *posljednja;
+
+public:
+  explicit NepreklapajucaKugla(double r = 0) {
+    if (r < 0)
+      throw std::domain_error("Ilegalan poluprecnik");
+    NepreklapajucaKugla *p = posljednja;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(0, 0, 0, p->DajX(), p->DajY(), p->DajZ()) <
+               r + p->DajPoluprecnik() ||
+           Udaljenost(0, 0, 0, p->DajX(), p->DajY(), p->DajZ()) ==
+               r + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(0, 0, 0, p->DajX(), p->DajY(), p->DajZ()),
+                   r + p->DajPoluprecnik())))
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      else
+        p = p->prethodna;
+    }
+    NepreklapajucaKugla::x = 0;
+    NepreklapajucaKugla::y = 0;
+    NepreklapajucaKugla::z = 0;
+    NepreklapajucaKugla::r = r;
+    NepreklapajucaKugla::prethodna = posljednja;
+    NepreklapajucaKugla::posljednja = this;
+  }
+  NepreklapajucaKugla(double x, double y, double z, double r = 0) {
+    if (r < 0)
+      throw std::domain_error("Ilegalan poluprecnik");
+    NepreklapajucaKugla *p = posljednja;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(x, y, z, p->DajX(), p->DajY(), p->DajZ()) <
+               r + p->DajPoluprecnik() ||
+           Udaljenost(x, y, z, p->DajX(), p->DajY(), p->DajZ()) ==
+               r + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(x, y, z, p->DajX(), p->DajY(), p->DajZ()),
+                   r + p->DajPoluprecnik())))
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      else
+        p = p->prethodna;
+    }
+    NepreklapajucaKugla::x = x;
+    NepreklapajucaKugla::y = y;
+    NepreklapajucaKugla::z = z;
+    NepreklapajucaKugla::r = r;
+    NepreklapajucaKugla::prethodna = posljednja;
+    NepreklapajucaKugla::posljednja = this;
+  }
+  explicit NepreklapajucaKugla(const std::tuple<double, double, double> &centar,
+                               double r = 0) {
+    if (r < 0)
+      throw std::domain_error("Ilegalan poluprecnik");
+    NepreklapajucaKugla *p = posljednja;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(std::get<0>(centar), std::get<1>(centar),
+                      std::get<2>(centar), p->DajX(), p->DajY(),
+                      p->DajZ()) < r + p->DajPoluprecnik() ||
+           Udaljenost(std::get<0>(centar), std::get<1>(centar),
+                      std::get<2>(centar), p->DajX(), p->DajY(),
+                      p->DajZ()) == r + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(std::get<0>(centar), std::get<1>(centar),
+                              std::get<2>(centar), p->DajX(), p->DajY(),
+                              p->DajZ()),
+                   r + p->DajPoluprecnik())))
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      else
+        p = p->prethodna;
+    }
+    NepreklapajucaKugla::x = std::get<0>(centar);
+    NepreklapajucaKugla::y = std::get<1>(centar);
+    NepreklapajucaKugla::z = std::get<2>(centar);
+    NepreklapajucaKugla::r = r;
+    NepreklapajucaKugla::prethodna = posljednja;
+    NepreklapajucaKugla::posljednja = this;
+  }
+  ~NepreklapajucaKugla() {
+    if (posljednja == this)
+      posljednja = this->prethodna;
+    else {
+      NepreklapajucaKugla *p = posljednja;
+      while (p->prethodna != this)
+        p = p->prethodna;
+      p->prethodna = this->prethodna;
+    }
+  }
+  NepreklapajucaKugla(const NepreklapajucaKugla &kugla) = delete;
+  NepreklapajucaKugla &operator=(const NepreklapajucaKugla &kugla) = delete;
+  double DajX() const { return x; }
+  double DajY() const { return y; }
+  double DajZ() const { return z; }
+  std::tuple<double, double, double> DajCentar() const { return {x, y, z}; }
+  double DajPoluprecnik() const { return r; }
+  double DajPovrsinu() const { return 4 * pi * r * r; }
+  double DajZapreminu() const { return 4 * pi * r * r * r / 3; }
+  NepreklapajucaKugla &PostaviX(double x) {
+    NepreklapajucaKugla *p = posljednja;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(x, this->DajY(), this->DajZ(), p->DajX(), p->DajY(),
+                      p->DajZ()) <
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Udaljenost(x, this->DajY(), this->DajZ(), p->DajX(), p->DajY(),
+                      p->DajZ()) ==
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(x, this->DajY(), this->DajZ(), p->DajX(),
+                              p->DajY(), p->DajZ()),
+                   this->DajPoluprecnik() + p->DajPoluprecnik()))) {
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      } else
+        p = p->prethodna;
+    }
+    NepreklapajucaKugla::x = x;
+    return *this;
+  }
+  NepreklapajucaKugla &PostaviY(double y) {
+    NepreklapajucaKugla *p = posljednja;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(this->DajX(), y, this->DajZ(), p->DajX(), p->DajY(),
+                      p->DajZ()) <
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Udaljenost(this->DajX(), y, this->DajZ(), p->DajX(), p->DajY(),
+                      p->DajZ()) ==
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(this->DajX(), y, this->DajZ(), p->DajX(),
+                              p->DajY(), p->DajZ()),
+                   this->DajPoluprecnik() + p->DajPoluprecnik()))) {
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      } else
+        p = p->prethodna;
+    }
+    NepreklapajucaKugla::y = y;
+    return *this;
+  }
+  NepreklapajucaKugla &PostaviZ(double z) {
+    NepreklapajucaKugla *p = posljednja;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(this->DajX(), this->DajY(), z, p->DajX(), p->DajY(),
+                      p->DajZ()) <
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Udaljenost(this->DajX(), this->DajY(), z, p->DajX(), p->DajY(),
+                      p->DajZ()) ==
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(this->DajX(), this->DajY(), z, p->DajX(),
+                              p->DajY(), p->DajZ()),
+                   this->DajPoluprecnik() + p->DajPoluprecnik()))) {
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      } else
+        p = p->prethodna;
+    }
+    NepreklapajucaKugla::z = z;
+    return *this;
+  }
+  NepreklapajucaKugla &PostaviCentar(double x, double y, double z) {
+    NepreklapajucaKugla *p = posljednja;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(x, y, z, p->DajX(), p->DajY(), p->DajZ()) <
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Udaljenost(x, y, z, p->DajX(), p->DajY(), p->DajZ()) ==
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(x, y, z, p->DajX(), p->DajY(), p->DajZ()),
+                   this->DajPoluprecnik() + p->DajPoluprecnik())))
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      else
+        p = p->prethodna;
+    }
+    NepreklapajucaKugla::x = x;
+    NepreklapajucaKugla::y = y;
+    NepreklapajucaKugla::z = z;
+    return *this;
+  }
+  NepreklapajucaKugla &
+  PostaviCentar(const std::tuple<double, double, double> &centar) {
+    NepreklapajucaKugla *p = posljednja;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(std::get<0>(centar), std::get<1>(centar),
+                      std::get<2>(centar), p->DajX(), p->DajY(), p->DajZ()) <
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Udaljenost(std::get<0>(centar), std::get<1>(centar),
+                      std::get<2>(centar), p->DajX(), p->DajY(), p->DajZ()) ==
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(std::get<0>(centar), std::get<1>(centar),
+                              std::get<2>(centar), p->DajX(), p->DajY(),
+                              p->DajZ()),
+                   this->DajPoluprecnik() + p->DajPoluprecnik())))
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      else
+        p = p->prethodna;
+    }
+    PostaviCentar(std::get<0>(centar), std::get<1>(centar),
+                  std::get<2>(centar));
+    return *this;
+  }
+  NepreklapajucaKugla &PostaviPoluprecnik(double r) {
+    if (r < 0)
+      throw std::domain_error("Ilegalan poluprecnik");
+    NepreklapajucaKugla *p = prethodna;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(this->DajX(), this->DajY(), this->DajZ(), p->DajX(),
+                      p->DajY(), p->DajZ()) < r + p->DajPoluprecnik() ||
+           Udaljenost(this->DajX(), this->DajY(), this->DajZ(), p->DajX(),
+                      p->DajY(), p->DajZ()) == r + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(this->DajX(), this->DajY(), this->DajZ(),
+                              p->DajX(), p->DajY(), p->DajZ()),
+                   r + p->DajPoluprecnik()))) {
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      } else
+        p = p->prethodna;
+    }
+    NepreklapajucaKugla::r = r;
+    return *this;
+  }
+  void Ispisi() const {
+    std::cout << "{(" << DajX() << "," << DajY() << "," << DajZ() << "),"
+              << DajPoluprecnik() << "}";
+  }
+  void Transliraj(double delta_x, double delta_y, double delta_z) {
+    NepreklapajucaKugla *p = prethodna;
+    while (p != nullptr) {
+      if (p != this &&
+          (Udaljenost(x + delta_x, y + delta_y, z + delta_z, p->DajX(),
+                      p->DajY(), p->DajZ()) <
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Udaljenost(x + delta_x, y + delta_y, z + delta_z, p->DajX(),
+                      p->DajY(), p->DajZ()) ==
+               this->DajPoluprecnik() + p->DajPoluprecnik() ||
+           Jednaki(Udaljenost(x + delta_x, y + delta_y, z + delta_z, p->DajX(),
+                              p->DajY(), p->DajZ()),
+                   this->DajPoluprecnik() + p->DajPoluprecnik()))) {
+        throw std::logic_error("Nedozvoljeno preklapanje");
+      } else
+        p = p->prethodna;
+    }
+    PostaviCentar(x + delta_x, y + delta_y, z + delta_z);
+  }
+  bool DaLiSadrzi(const NepreklapajucaKugla &k) const {
+    return RastojanjeCentara(k, *this) - (r - k.r) <=
+           e * (std::abs(RastojanjeCentara(k, *this)) + std::abs(r - k.r));
+  }
+  friend double RastojanjeCentara(const NepreklapajucaKugla &k1,
+                                  const NepreklapajucaKugla &k2);
+};
+
+NepreklapajucaKugla *NepreklapajucaKugla::posljednja = nullptr;
+
+double RastojanjeCentara(const NepreklapajucaKugla &k1,
+                         const NepreklapajucaKugla &k2) {
+  return sqrt(pow((k2.x - k1.x), 2) + pow((k2.y - k1.y), 2) +
+              pow((k2.z - k1.z), 2));
+}
+
+int main() {
+  std::cout << "Unesite broj kugli: ";
+  int n;
+  std::cin >> n;
+  while (!std::cin || n <= 0) {
+    std::cin.clear();
+    std::cin.ignore(10000, '\n');
+    std::cout << "Neispravan broj kugli, unesite ponovo!" << std::endl;
+    std::cin >> n;
+  }
+  std::vector<std::shared_ptr<NepreklapajucaKugla>> v(n);
+  for (int i = 0; i < n; i++) {
+    double x(0), y(0), z(0);
+    std::cout << "Unesite centar za " << i + 1 << ". kuglu: ";
+    while (std::cin >> x >> y >> z, !std::cin) {
+      std::cin.clear();
+      std::cin.ignore(10000, '\n');
+      std::cout << "Neispravan centar, unesite ponovo: ";
+    }
+    double r(0);
+    std::cout << "Unesite poluprecnik: ";
+    std::cin >> r;
+    while (!std::cin || r < 0) {
+      std::cin.clear();
+      std::cin.ignore(10000, '\n');
+      std::cout << "Neispravan poluprecnik, unesite ponovo:" << std::endl;
+      std::cin >> r;
+    }
+    try {
+      v.at(i) = std::make_shared<NepreklapajucaKugla>(x, y, z, r);
+    } catch (std::logic_error error) {
+      std::cout << error.what() << std::endl;
+      i--;
+    }
+  }
+  std::sort(v.begin(), v.end(),
+            [](std::shared_ptr<NepreklapajucaKugla> k1,
+               std::shared_ptr<NepreklapajucaKugla> k2) {
+              return k1->DajPovrsinu() < k2->DajPovrsinu();
+            });
+  std::cout << std::endl << "Kugle nakon obavljenog sortiranja:" << std::endl;
+  std::for_each(v.begin(), v.end(),
+                [](std::shared_ptr<NepreklapajucaKugla> k1) {
+                  k1->Ispisi();
+                  std::cout << std::endl;
+                });
+  return 0;
+}
