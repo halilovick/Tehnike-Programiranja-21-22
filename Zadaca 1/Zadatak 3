@@ -33,6 +33,7 @@ bool DaLiSeDameNapadaju(std::vector<std::vector<bool>> M) {
             return true;
           }
         }
+        
         int k = 1;
         for (;;) {
           if (i + k < brojRedova && j + k < brojKolona) {
