@@ -1,0 +1,77 @@
+// TP 2021/2022: Zadaća 2, Zadatak 3
+#include <iostream>
+#include <vector>
+
+template <typename Tip1, typename Tip2>
+auto ZbirKontejnera(Tip1 v1, Tip2 v2)
+    -> std::vector<decltype(*v1.begin() + *v2.begin())> {
+  using tip =
+      typename std::remove_reference<decltype(*v1.begin() + *v2.begin())>::type;
+  using tip1 = typename std::remove_reference<decltype(*v1.begin())>::type;
+  using tip2 = typename std::remove_reference<decltype(*v2.begin())>::type;
+  std::vector<tip> v;
+  tip1 d1{};
+  tip2 d2{};
+  auto i1 = v1.begin();
+  auto i2 = v2.begin();
+  int size1 = 0, size2 = 0;
+  while (i1 != v1.end()) {
+    size1++;
+    i1++;
+  }
+  while (i2 != v2.end()) {
+    size2++;
+    i2++;
+  }
+  if (size1 == 0 && size2 == 0)
+    return v;
+  i1 = v1.begin();
+  i2 = v2.begin();
+  for (;;) {
+    v.push_back(*i1 + *i2);
+    i1++;
+    i2++;
+    if (i1 == v1.end()) {
+      while (i2 != v2.end()) {
+        v.push_back(d1 + *i2);
+        i2++;
+      }
+      break;
+    } else if (i2 == v2.end()) {
+      while (i1 != v1.end()) {
+        v.push_back(*i1 + d2);
+        i1++;
+      }
+      break;
+    }
+  }
+  return v;
+}
+
+int main() {
+  int vel1;
+  std::cout << "Duzina prvog kontejnera: ";
+  std::cin >> vel1;
+  std::cout << "Elementi prvog kontejnera: ";
+  std::vector<double> v1;
+  for (int i = 0; i < vel1; i++) {
+    double broj;
+    std::cin >> broj;
+    v1.push_back(broj);
+  }
+  int vel2;
+  std::cout << "Duzina drugog kontejnera: ";
+  std::cin >> vel2;
+  std::cout << "Elementi drugog kontejnera: ";
+  std::vector<double> v2;
+  for (int i = 0; i < vel2; i++) {
+    double broj;
+    std::cin >> broj;
+    v2.push_back(broj);
+  }
+  std::vector<double> rez = ZbirKontejnera(v1, v2);
+  std::cout << "Zbir kontejnera: ";
+  for (double x : rez)
+    std::cout << x << " ";
+  return 0;
+}
