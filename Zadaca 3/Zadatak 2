@@ -1,0 +1,124 @@
+// TP 2021/2022: Zadaća 3, Zadatak 2
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <cstring>
+#include <iostream>
+#include <map>
+#include <set>
+#include <string>
+
+void IspisiSkup(std::set<int> set, std::string s = " ") {
+  for (auto i = set.begin(); i != set.end(); i++) {
+    std::cout << *i;
+    if (i != --set.end())
+      std::cout << s;
+  }
+}
+
+bool DalijeSlovoiliBroj(char znak) {
+  if ((znak >= 'A' && znak <= 'Z') || (znak >= 'a' && znak <= 'z') ||
+      (znak >= '0' && znak <= '9'))
+    return true;
+  return false;
+}
+
+void StringuMale(std::string &s) {
+  for (int i = 0; i < s.length(); i++) {
+    char ch = s.at(i);
+    if (ch >= 'A' && ch <= 'Z')
+      ch += 32;
+    s.at(i) = ch;
+  }
+}
+
+std::map<std::string, std::set<int>> KreirajIndeksPojmova(std::string s) {
+  std::map<std::string, std::set<int>> mapa{};
+  /*if (s.length() == 0)
+    return mapa;
+  int i(0);
+  while (i != s.length()) {
+    while (i != s.length() && !DalijeSlovoiliBroj(s.at(i))) {
+      if (i >= s.length())
+        break;
+      i++;
+    }
+    if (i >= s.length())
+      return mapa;
+    if (DalijeSlovoiliBroj(s.at(i))) {
+      int j = i;
+      std::string pomocni{};
+      while (i != s.length() && DalijeSlovoiliBroj(s.at(i))) {
+        pomocni.push_back(s.at(i));
+        i++;
+      }
+      StringuMale(pomocni);
+      if (pomocni.length() != 0)
+        mapa[pomocni].insert(j);
+    }
+  }*/
+  StringuMale(s);
+  for (int i = 0; i < s.length(); i++) {
+    if (DalijeSlovoiliBroj(s.at(i))) {
+      std::string pomocni{};
+      int j = i;
+      while (DalijeSlovoiliBroj(s.at(i))) {
+        pomocni.push_back(s.at(i));
+        i++;
+        if (i == s.length())
+          break;
+      }
+      if (pomocni.length() != 0)
+        mapa[pomocni].insert(j);
+    }
+  }
+  return mapa;
+}
+
+void IspisiIndeksPojmova(std::map<std::string, std::set<int>> map) {
+  for (auto it = map.begin(); it != map.end(); it++) {
+    std::cout << (*it).first << ": ";
+    for (auto i = it->second.begin(); i != it->second.end(); i++) {
+      std::cout << *i;
+      if (i != --it->second.end())
+        std::cout << ",";
+    }
+    std::cout << std::endl;
+  }
+}
+
+auto PretraziIndeksPojmova(std::string s,
+                           std::map<std::string, std::set<int>> mapa) {
+  StringuMale(s);
+  auto it = mapa.find(s);
+  if (it == mapa.end())
+    throw std::logic_error("Pojam nije nadjen");
+  return it->second;
+}
+
+int main() {
+  std::cout << "Unesite tekst: ";
+  std::string s;
+  std::getline(std::cin, s);
+  auto mapa = KreirajIndeksPojmova(s);
+  IspisiIndeksPojmova(mapa);
+  for (;;) {
+    std::cout << "Unesite rijec: ";
+    std::string rijec;
+    std::getline(std::cin, rijec);
+    if (rijec == ".")
+      return 0;
+    try {
+      std::set<int> set = PretraziIndeksPojmova(rijec, mapa);
+      for (auto i = set.begin(); i != set.end(); i++) {
+        std::cout << *i;
+        if (i != --set.end())
+          std::cout << " ";
+      }
+      std::cout << std::endl;
+    } catch (std::logic_error) {
+      std::cout << "Unesena rijec nije nadjena!" << std::endl;
+    }
+  }
+  return 0;
+}
