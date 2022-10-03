@@ -1,0 +1,292 @@
+// TP 2021/2022: Zadaća 4, Zadatak 3
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <utility>
+
+std::string KojiVoz(bool voz) {
+  if (voz == true)
+    return "Brzi voz";
+  return "Lokalni voz";
+}
+
+class Polazak {
+  std::string odrediste;
+  int broj_voza, broj_perona, sat_polaska, minute_polaska, trajanje_voznje,
+      kasnjenje;
+  bool brzi_voz;
+
+public:
+  Polazak(){};
+  Polazak(std::string odrediste, int broj_voza, int broj_perona, bool brzi_voz,
+          int sat_polaska, int minute_polaska, int trajanje_voznje) {
+    if (broj_perona < 1 || broj_perona > 6)
+      throw std::domain_error("Neispravan broj perona");
+    if (sat_polaska < 0 || sat_polaska > 23)
+      throw std::domain_error("Neispravan broj sati");
+    int broj_cifri = 0, k = broj_voza;
+    while (k != 0) {
+      broj_cifri++;
+      k /= 10;
+    }
+    if (broj_cifri > 5)
+      throw std::domain_error("Prevelik broj!");
+    if (sat_polaska < 0 || minute_polaska < 0 || trajanje_voznje < 0)
+      throw std::domain_error("Neispravno vrijeme");
+    Polazak::odrediste = odrediste;
+    Polazak::broj_voza = broj_voza;
+    Polazak::broj_perona = broj_perona;
+    Polazak::brzi_voz = brzi_voz;
+    Polazak::sat_polaska = sat_polaska;
+    Polazak::minute_polaska = minute_polaska;
+    Polazak::trajanje_voznje = trajanje_voznje;
+    Polazak::kasnjenje = 0;
+  }
+  void PostaviKasnjenje(int kasnjenje) { Polazak::kasnjenje = kasnjenje; }
+  bool DaLiKasni() const {
+    if (Polazak::kasnjenje > 0)
+      return true;
+    return false;
+  }
+  int DajTrajanjeVoznje() const { return trajanje_voznje; }
+  std::pair<int, int> DajOcekivanoVrijemePolaska() const {
+    int sati = sat_polaska;
+    int minute = minute_polaska + kasnjenje;
+    while (minute > 59) {
+      sati++;
+      minute -= 60;
+    }
+    while (sati > 23)
+      sati -= 24;
+    return {sati, minute};
+  }
+  std::pair<int, int> DajOcekivanoVrijemeDolaska() const {
+    int sati = sat_polaska;
+    int minute = minute_polaska + trajanje_voznje + kasnjenje;
+    while (minute > 59) {
+      sati++;
+      minute -= 60;
+    }
+    while (sati > 23)
+      sati -= 24;
+    return {sati, minute};
+  }
+  void Ispisi() const {
+    if (kasnjenje > 0) {
+      std::cout << KojiVoz(brzi_voz) << " broj " << broj_voza << ", odrediste "
+                << odrediste << ", sa predvidjenim vremenom polaska u "
+                << std::setfill('0') << std::setw(2) << sat_polaska << ":"
+                << std::setfill('0') << std::setw(2) << minute_polaska
+                << ", kasni oko " << kasnjenje << " minuta, te ce poci oko "
+                << std::setfill('0') << std::setw(2)
+                << DajOcekivanoVrijemePolaska().first << ":"
+                << std::setfill('0') << std::setw(2)
+                << DajOcekivanoVrijemePolaska().second
+                << ". Ocekuje se da voz stigne na odrediste oko "
+                << std::setfill('0') << std::setw(2)
+                << DajOcekivanoVrijemeDolaska().first << ":"
+                << std::setfill('0') << std::setw(2)
+                << DajOcekivanoVrijemeDolaska().second
+                << ". Izvinjavamo se putnicima zbog eventualnih neugodnosti.";
+    } else {
+      std::cout << KojiVoz(brzi_voz) << " broj " << broj_voza << ", odrediste "
+                << odrediste << ", polazi sa perona " << broj_perona << " u "
+                << std::setfill('0') << std::setw(2)
+                << DajOcekivanoVrijemePolaska().first << ":"
+                << std::setfill('0') << std::setw(2)
+                << DajOcekivanoVrijemePolaska().second
+                << ", a na odrediste stize u " << std::setfill('0')
+                << std::setw(2) << DajOcekivanoVrijemeDolaska().first << ":"
+                << std::setfill('0') << std::setw(2)
+                << DajOcekivanoVrijemeDolaska().second
+                << ". Putnicima i voznom osoblju zelimo ugodno putovanje.";
+    }
+  }
+  friend class RedVoznje;
+};
+
+class RedVoznje {
+  Polazak **polasci;
+  int max_broj_polazaka, brojac;
+
+public:
+  explicit RedVoznje(int max_broj_polazaka)
+      : max_broj_polazaka(max_broj_polazaka) {
+    polasci = new Polazak *[max_broj_polazaka] {};
+    brojac = 0;
+  }
+  RedVoznje(std::initializer_list<Polazak> lista_polazaka)
+      : max_broj_polazaka(lista_polazaka.size()),
+        polasci(new Polazak *[lista_polazaka.size()] {}) {
+    auto ite = lista_polazaka.begin();
+    for (int i = 0; i < lista_polazaka.size(); i++) {
+      polasci[i] = new Polazak(*ite);
+      ite++;
+    }
+    brojac = lista_polazaka.size();
+  }
+  ~RedVoznje() {
+    if (polasci == nullptr)
+      return;
+    for (int i = 0; i < max_broj_polazaka; i++) {
+      delete polasci[i];
+    }
+    delete[] polasci;
+  };
+  RedVoznje(const RedVoznje &red_voznje)
+      : polasci(new Polazak *[red_voznje.max_broj_polazaka] {}),
+        max_broj_polazaka(red_voznje.max_broj_polazaka) {
+    brojac = red_voznje.brojac;
+    for (int i = 0; i < brojac; i++)
+      polasci[i] = new Polazak(*red_voznje.polasci[i]);
+  }
+  RedVoznje(RedVoznje &&red_voznje)
+      : polasci(red_voznje.polasci),
+        max_broj_polazaka(red_voznje.max_broj_polazaka) {
+    red_voznje.polasci = nullptr;
+    red_voznje.max_broj_polazaka = 0;
+    brojac = red_voznje.brojac;
+  }
+  RedVoznje &operator=(const RedVoznje &red_voznje) {
+    if (&red_voznje != this) {
+      for (int i = 0; i < max_broj_polazaka; i++) {
+        delete polasci[i];
+        polasci[i] = nullptr;
+      }
+      delete[] polasci;
+      polasci = nullptr;
+      max_broj_polazaka = red_voznje.max_broj_polazaka;
+      polasci = new Polazak *[red_voznje.max_broj_polazaka] {};
+      for (int i = 0; i < red_voznje.brojac; i++) {
+        polasci[i] = new Polazak(*red_voznje.polasci[i]);
+      }
+      brojac = red_voznje.brojac;
+    }
+    return *this;
+  }
+  void RegistrirajPolazak(std::string odrediste, int broj_voza, bool brzi_voz,
+                          int broj_perona, int sat_polaska, int minute_polaska,
+                          int trajanje_voznje) {
+    if (brojac >= max_broj_polazaka)
+      throw std::range_error("Dostignut maksimalni broj polazaka");
+    polasci[brojac] = new Polazak(odrediste, broj_voza, broj_perona, brzi_voz,
+                                  sat_polaska, minute_polaska, trajanje_voznje);
+    brojac++;
+  }
+  void RegistrirajPolazak(Polazak *polazak) {
+    if (brojac >= max_broj_polazaka)
+      throw std::range_error("Dostignut maksimalni broj polazaka");
+    polasci[brojac] = polazak;
+    brojac++;
+  }
+  int DajBrojPolazaka() const { return brojac; }
+  int DajBrojPolazakaKojiKasne() const {
+    return std::count_if(polasci, polasci + brojac,
+                         [](auto p1) { return p1->kasnjenje != 0; });
+  }
+  int DajProsjecnoTrajanjeVoznji() const {
+    if (brojac == 0)
+      throw std::domain_error("Nema registriranih polazaka");
+    int ukupno = 0;
+    for (int k = 0; k < brojac; k++) {
+      ukupno += polasci[k]->DajTrajanjeVoznje();
+    }
+    return ukupno / brojac;
+  }
+  Polazak &DajPrviPolazak() const {
+    if (brojac == 0)
+      throw std::domain_error("Nema registriranih polazaka");
+    auto it1 = std::min_element(
+        polasci, polasci + brojac, [](Polazak *p1, Polazak *p2) {
+          int h1 = p1->sat_polaska, m1 = p1->minute_polaska,
+              h2 = p2->sat_polaska, m2 = p2->minute_polaska;
+          double u1 = h1 * 60 + m1, u2 = h2 * 60 + m2;
+          return u1 > u2;
+        });
+    return **it1;
+  }
+  Polazak &DajPosljednjiPolazak() const {
+    if (brojac == 0)
+      throw std::domain_error("Nema registriranih polazaka");
+    auto it1 =
+        std::max_element(polasci, polasci + brojac, [](auto p1, auto p2) {
+          double u1 = p1->sat_polaska * 60 + p1->minute_polaska,
+                 u2 = p2->sat_polaska * 60 + p2->minute_polaska;
+          return u1 > u2;
+        });
+    return **it1;
+  }
+  void IsprazniRedVoznje() {
+    for (int i = 0; i < max_broj_polazaka; i++) {
+      delete polasci[i];
+    }
+    delete[] polasci;
+    polasci = new Polazak *[max_broj_polazaka] {};
+    brojac = 0;
+  }
+  void Ispisi(int sati, int minute) const {
+    std::sort(polasci, polasci + brojac, [](auto p1, auto p2) {
+      double u1 = p1->DajOcekivanoVrijemePolaska().first * 60 +
+                  p1->DajOcekivanoVrijemePolaska().second,
+             u2 = p2->DajOcekivanoVrijemePolaska().first * 60 +
+                  p2->DajOcekivanoVrijemePolaska().second;
+      return u1 < u2;
+    });
+    for (int k = 0; k < brojac; k++) {
+      if (polasci[k]->DajOcekivanoVrijemePolaska().first > sati) {
+        polasci[k]->Ispisi();
+        std::cout << std::endl;
+      } else if (polasci[k]->DajOcekivanoVrijemePolaska().first == sati &&
+                 polasci[k]->DajOcekivanoVrijemePolaska().second >= minute) {
+        polasci[k]->Ispisi();
+        std::cout << std::endl;
+      }
+    }
+  }
+};
+
+int main() {
+  RedVoznje voznje(1000);
+  std::cout << "Unesite broj polazaka: ";
+  int n;
+  std::cin >> n;
+  for (int i = 0; i < n; i++) {
+    std::string odrediste;
+    std::cout << "Unesite odrediste: ";
+    std::cin >> odrediste;
+    int broj_voza;
+    std::cout << "Unesite broj voza: ";
+    std::cin >> broj_voza;
+    int broj_perona;
+    std::cout << "Unesite broj perona: ";
+    std::cin >> broj_perona;
+    bool brzi_voz;
+    std::cout << "Da li je brzi voz? (1 za da, 0 za ne): ";
+    std::cin >> brzi_voz;
+    int sat_polaska;
+    std::cout << "Unesite sat polaska: ";
+    std::cin >> sat_polaska;
+    int minute_polaska;
+    std::cout << "Unesite minute polaska: ";
+    std::cin >> minute_polaska;
+    int trajanje;
+    std::cout << "Unesite trajanje voznje: ";
+    std::cin >> trajanje;
+    try {
+      voznje.RegistrirajPolazak(odrediste, broj_voza, brzi_voz, broj_perona,
+                                sat_polaska, minute_polaska, trajanje);
+    } catch (std::range_error e) {
+      std::cout << e.what();
+    }
+  }
+  voznje = voznje;
+  RedVoznje voznje2(voznje);
+  RedVoznje voznje3(50);
+  voznje3 = voznje2;
+  std::cout << "Podaci o redu voznji:\n"
+            << "Broj polazaka: " << voznje.DajBrojPolazaka()
+            << "\nProsjecno trajanje voznji: "
+            << voznje.DajProsjecnoTrajanjeVoznji();
+  return 0;
+}
