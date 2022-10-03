@@ -1,0 +1,84 @@
+// TP 2021/2022: Zadaća 2, Zadatak 5
+#include <cmath>
+#include <deque>
+#include <iostream>
+#include <vector>
+
+double funkcija(double x, double y) { return x + 2 * y; }
+
+template <typename Tip1, typename Tip2, typename TipFunkcije>
+auto GeneraliziraniSpoljasnjiProizvod(Tip1 v1start, Tip1 v1end, Tip2 v2start,
+                                      Tip2 v2end, TipFunkcije f) {
+  using tip1 = decltype(f(*v1start, *v2start));
+  tip1 **p = nullptr;
+  int redovi = std::distance(v1start, v1end);
+  int kolone = std::distance(v2start, v2end);
+  try {
+    p = new tip1 *[redovi] {};
+    try {
+      for (int i = 0; i < redovi; i++) {
+        p[i] = new tip1[kolone];
+      }
+      auto it1 = v1start;
+      for (int i = 0; i < redovi; i++) {
+        auto it2 = v2start;
+        for (int j = 0; j < kolone; j++) {
+          p[i][j] = f(*it1, *it2);
+          it2++;
+        }
+        it1++;
+      }
+    } catch (...) {
+      for (int i = 0; i < redovi; i++) {
+        delete[] p[i];
+      }
+      delete[] p;
+      throw;
+    }
+  } catch (...) {
+    throw std::range_error("Nema dovoljno memorije!");
+  }
+  return p;
+}
+
+int main() {
+  int d1 = 0;
+  std::cout << "Duzina prve sekvence: ";
+  std::cin >> d1;
+  std::vector<double> v;
+  std::cout << "Elementi prve sekvence: ";
+  for (int i = 0; i < d1; i++) {
+    double broj;
+    std::cin >> broj;
+    v.push_back(broj);
+  }
+  int d2 = 0;
+  std::cout << "Duzina druge sekvence: ";
+  std::cin >> d2;
+  std::deque<double> d;
+  std::cout << "Elementi druge sekvence: ";
+  for (int i = 0; i < d2; i++) {
+    double broj;
+    std::cin >> broj;
+    d.push_back(broj);
+  }
+  std::cout << "Generalizirani spoljasnji proizvod uz f(x,y)=x+2y:"
+            << std::endl;
+  try {
+    double **rez = GeneraliziraniSpoljasnjiProizvod(
+        v.begin(), v.end(), d.begin(), d.end(), funkcija);
+    for (int i = 0; i < v.size(); i++) {
+      for (int j = 0; j < d.size(); j++) {
+        std::cout << rez[i][j] << " ";
+      }
+      std::cout << std::endl;
+    }
+    for (int i = 0; i < v.size(); i++) {
+      delete[] rez[i];
+    }
+    delete[] rez;
+  } catch (std::range_error e) {
+    std::cout << e.what();
+  }
+  return 0;
+}
