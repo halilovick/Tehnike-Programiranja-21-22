@@ -1,0 +1,227 @@
+// TP 2021/2022: Zadaća 5, Zadatak 3
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <utility>
+#include <vector>
+
+class Spremnik {
+protected:
+  std::string imePredmeta;
+  double m;
+
+public:
+  Spremnik(const double &x, std::string ime) : m(x), imePredmeta(ime) {}
+  virtual ~Spremnik() {}
+  double DajTezinu() const { return m; }
+  virtual double DajUkupnuTezinu() const = 0;
+  virtual void Ispisi() const = 0;
+  virtual Spremnik *DajKopiju() const = 0;
+};
+
+class Bure : public Spremnik {
+  double bureTezina, zapremina;
+
+public:
+  Bure(const double &m, std::string ime, const double &bureTezina,
+       const double &zapremina)
+      : Spremnik(m, ime), bureTezina(bureTezina), zapremina(zapremina) {}
+  double DajUkupnuTezinu() const override {
+    return (zapremina / 1000 * bureTezina) + DajTezinu();
+  }
+  void Ispisi() const override {
+    std::cout << "Vrsta spremnika: Bure\nSadrzaj: " << this->imePredmeta
+              << "\nVlastita tezina: " << this->DajTezinu() << " (kg)"
+              << "\nSpecificna tezina tecnosti: " << bureTezina << " (kg/m^3)"
+              << "\nZapremina tecnosti: " << zapremina << " (l)"
+              << "\nUkupna tezina: " << DajUkupnuTezinu() << " (kg)"
+              << std::endl;
+  }
+  Spremnik *DajKopiju() const override { return new Bure(*this); }
+};
+
+class Sanduk : public Spremnik {
+  std::vector<double> mase;
+
+public:
+  Sanduk(const double &m, std::string ime, std::vector<double> V)
+      : Spremnik(m, ime), mase(V) {}
+  double DajUkupnuTezinu() const override {
+    double S(0);
+    for (int i = 0; i < mase.size(); i++) {
+      S += mase[i];
+    }
+    S += DajTezinu();
+    return S;
+  }
+  void Ispisi() const override {
+    std::cout << "Vrsta spremnika: Sanduk\nSadrzaj: " << this->imePredmeta
+              << "\nTezine predmeta: ";
+    for (int i = 0; i < mase.size(); i++)
+      std::cout << mase[i] << " ";
+    std::cout << "(kg)"
+              << "\nVlastita tezina: " << DajTezinu() << " (kg)"
+              << "\nUkupna tezina: " << DajUkupnuTezinu() << " (kg)"
+              << std::endl;
+  }
+  Spremnik *DajKopiju() const override { return new Sanduk(*this); }
+};
+
+class Vreca : public Spremnik {
+  double vrecaTezina;
+
+public:
+  Vreca(const double &m, std::string ime, const double &masa)
+      : Spremnik(m, ime), vrecaTezina(masa) {}
+  double DajUkupnuTezinu() const override {
+    return (vrecaTezina + DajTezinu());
+  }
+  void Ispisi() const override {
+    std::cout << "Vrsta spremnika: Vreca\nSadrzaj: " << this->imePredmeta
+              << "\nVlastita tezina: " << this->DajTezinu() << " (kg)"
+              << "\nTezina pohranjene materije: " << vrecaTezina << " (kg)"
+              << "\nUkupna tezina: " << DajUkupnuTezinu() << " (kg)"
+              << std::endl;
+  }
+  Spremnik *DajKopiju() const override { return new Vreca(*this); }
+};
+
+class Skladiste {
+  std::vector<std::shared_ptr<Spremnik>> v;
+
+public:
+  Skladiste() : v(0){};
+  Spremnik *DodajSpremnik(Spremnik *spremnik, bool vlasnik) {
+    if (vlasnik) {
+      v.emplace_back(spremnik);
+      Spremnik *temp = v.at(v.size() - 1).get();
+      return temp;
+    }
+    auto x = spremnik->DajKopiju();
+    v.emplace_back(x);
+    auto r = v.at(v.size() - 1).get();
+    return r;
+  }
+  std::shared_ptr<Spremnik> DodajSanduk(const double &masa, std::string ime,
+                                        std::vector<double> vek) {
+    v.push_back(std::make_shared<Sanduk>(Sanduk(masa, ime, vek)));
+    return v.at(v.size() - 1);
+  }
+  std::shared_ptr<Spremnik> DodajBure(const double &masa, std::string ime,
+                                      const double &m, const double &V) {
+    v.push_back(std::make_shared<Bure>(Bure(masa, ime, m, V)));
+    return v.at(v.size() - 1);
+  }
+  std::shared_ptr<Spremnik> DodajVrecu(const double &masa, std::string ime,
+                                       const double M) {
+    v.push_back(std::make_shared<Vreca>(Vreca(masa, ime, M)));
+    return v.at(v.size() - 1);
+  }
+  Spremnik &DajNajlaksi() {
+    if (v.size() == 0)
+      throw std::range_error("Skladiste je prazno");
+    return **std::min_element(v.begin(), v.end(), [](auto p1, auto p2) {
+      return p2->DajTezinu() > p1->DajTezinu();
+    });
+  }
+  Spremnik &DajNajtezi() {
+    if (v.size() == 0)
+      throw std::range_error("Skladiste je prazno");
+    return **std::min_element(v.begin(), v.end(), [](auto p1, auto p2) {
+      return p2->DajTezinu() < p1->DajTezinu();
+    });
+  }
+  int BrojPreteskih(double vel) const {
+    return std::count_if(v.begin(), v.end(), [&](auto p1) {
+      if (p1->DajUkupnuTezinu() > vel)
+        return true;
+      return false;
+    });
+  }
+  void IzlistajSkladiste() const {
+    auto b = v;
+    std::sort(b.begin(), b.end(), [](auto p1, auto p2) {
+      return p1->DajUkupnuTezinu() > p2->DajUkupnuTezinu();
+    });
+    for (int i = 0; i < b.size(); i++)
+      b[i]->Ispisi();
+  }
+  void BrisiSpremnik(Spremnik *s) {
+    for (int i = 0; i < v.size(); i++) {
+      if (v[i].get() == s) {
+        for (int j = i; j < v.size() - 1; j++)
+          v[j] = v[j + 1];
+        if (i == v.size() - 1)
+          v.resize(v.size() - 1);
+      }
+    }
+  }
+  void UcitajIzDatoteke(const std::string &ime) {
+    std::fstream ulaz(ime);
+    if (!ulaz)
+      throw std::logic_error("Trazena datoteka ne postoji");
+    for (int i = 0; i < v.size(); i++)
+      BrisiSpremnik(v[i].get());
+    while (ulaz) {
+      std::string rijec;
+      std::getline(ulaz, rijec, '\n');
+      if (ulaz.peek() == EOF)
+        ulaz.clear();
+      std::string t1 = rijec.substr(0, 1);
+      std::string t2 = rijec.substr(2, rijec.size() - 1);
+      if (t1 == "V") {
+        double masa1, masa2;
+        ulaz >> masa1 >> masa2;
+        if (ulaz.peek() == EOF)
+          ulaz.clear();
+        ulaz.get();
+        DodajVrecu(masa1, t2, masa2);
+      } else if (t1 == "B") {
+        double m1, m2, m3;
+        ulaz >> m1 >> m2 >> m3;
+        if (ulaz.peek() == EOF)
+          ulaz.clear();
+        ulaz.get();
+        DodajBure(m1, t2, m2, m3);
+      } else if (t1 == "S") {
+        double m1, m2;
+        std::vector<double> vektortezina;
+        bool k = false;
+        int broj;
+        while (ulaz.peek() != '\n' && ulaz.peek() != EOF) {
+          if (k == false) {
+            ulaz >> m1;
+            k = true;
+          }
+          ulaz >> broj;
+          for (int i = 0; i < broj; i++) {
+            if (ulaz.fail())
+              throw std::logic_error("Datoteka sadrzi besmislene podatke");
+            ulaz >> m2;
+            if (ulaz.fail())
+              throw std::logic_error("Datoteka sadrzi besmislene podatke");
+            vektortezina.push_back(m2);
+          }
+        }
+        if (ulaz.peek() == EOF)
+          ulaz.clear();
+        ulaz.get();
+        DodajSanduk(m1, t2, vektortezina);
+      }
+    }
+  }
+};
+
+int main() {
+  Skladiste roba;
+  try {
+    roba.UcitajIzDatoteke("ROBA.TXT");
+    roba.IzlistajSkladiste();
+  } catch (std::logic_error greska) {
+    std::cout << greska.what();
+  }
+  return 0;
+}
