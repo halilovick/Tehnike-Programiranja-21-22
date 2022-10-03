@@ -1,0 +1,151 @@
+/*
+    TP 16/17 (LV 13, Zadatak 4)
+        Autotestove pisala Ivona Ivkovic. Sva pitanja, sugestije, prijave
+   gresaka slati na mail iivkovic2@etf.unsa.ba
+
+        Vrsit ce se provjera na prepisivanje tutorijala (na kraju semestra)
+*/
+#include <iostream>
+class ApstraktniStudent {
+protected:
+  std::string ime, prezime;
+  int indeks, broj_polozenih;
+  double prosjecna_ocjena;
+
+public:
+  ApstraktniStudent(std::string ime, std::string prezime, int indeks)
+      : ime(ime), prezime(prezime), indeks(indeks) {
+    broj_polozenih = 0;
+    prosjecna_ocjena = 5;
+  }
+  virtual ~ApstraktniStudent(){};
+  virtual std::string DajIme() const { return ime; }
+  virtual std::string DajPrezime() const { return prezime; }
+  virtual int DajBrojIndeksa() const { return indeks; }
+  virtual int DajBrojPolozenih() const { return broj_polozenih; }
+  virtual double DajProsjek() const { return prosjecna_ocjena; }
+  virtual void RegistrirajIspit(int ocjena) {
+    if (ocjena < 5 || ocjena > 10)
+      throw std::domain_error("Neispravna ocjena");
+    else if (ocjena > 5) {
+      double suma = prosjecna_ocjena * broj_polozenih;
+      broj_polozenih++;
+      prosjecna_ocjena = (ocjena + suma) / broj_polozenih;
+    } else if (ocjena == 5) {
+      broj_polozenih = broj_polozenih + 0;
+      prosjecna_ocjena = prosjecna_ocjena + 0;
+    }
+  }
+  virtual void PonistiOcjene() {
+    broj_polozenih = 0;
+    prosjecna_ocjena = 5;
+  }
+  virtual void IspisiPodatke() const = 0;
+  virtual ApstraktniStudent *DajKopiju() const = 0;
+};
+
+class StudentBachelor : public ApstraktniStudent {
+public:
+  StudentBachelor(std::string ime, std::string prezime, int indeks)
+      : ApstraktniStudent(ime, prezime, indeks){};
+  ApstraktniStudent *DajKopiju() const override {
+    return new StudentBachelor(*this);
+  }
+  void IspisiPodatke() const override {
+    std::cout << "Student bachelor studija " << DajIme() << " " << DajPrezime()
+              << ", sa brojem indeksa " << DajBrojIndeksa() << ",\n"
+              << "ima prosjek " << DajProsjek() << "." << std::endl;
+  }
+};
+
+class StudentMaster : public ApstraktniStudent {
+  int godina;
+
+public:
+  StudentMaster(std::string ime, std::string prezime, int indeks, int godina)
+      : ApstraktniStudent(ime, prezime, indeks) {
+    StudentMaster::godina = godina;
+  };
+  ApstraktniStudent *DajKopiju() const override {
+    return new StudentMaster(*this);
+  }
+  void IspisiPodatke() const override {
+    std::cout << "Student master studija " << DajIme() << " " << DajPrezime()
+              << ", sa brojem indeksa " << DajBrojIndeksa() << ",\n"
+              << "zavrsio bachelor studij godine " << godina << ",ima prosjek "
+              << DajProsjek() << "." << std::endl;
+  }
+};
+
+class Student {
+  ApstraktniStudent *student;
+  void Provjera() const {
+    if (!student)
+      throw std::logic_error("Nespecifican lik!");
+  }
+
+public:
+  Student() : student(nullptr){};
+  ~Student() { delete student; };
+  Student(const Student &s) {
+    if (s.student == nullptr)
+      student = nullptr;
+    else
+      student = s.student->DajKopiju();
+  }
+  Student(const ApstraktniStudent &s) : student(s.DajKopiju()){};
+  Student(Student &&s) {
+    student = s.student;
+    s.student = nullptr;
+  }
+  Student &operator=(const Student &s) {
+    delete student;
+    if (s.student == nullptr)
+      student = nullptr;
+    else
+      student = s.student->DajKopiju();
+    return *this;
+  }
+  Student &operator=(Student &&s) {
+    std::swap(s.student, student);
+    return *this;
+  }
+  std::string DajIme() {
+    Provjera();
+    return student->DajIme();
+  }
+  std::string DajPrezime() {
+    Provjera();
+    return student->DajPrezime();
+  }
+  int DajBrojIndeksa() {
+    Provjera();
+    return student->DajBrojIndeksa();
+  }
+  int DajBrojPolozenih() {
+    Provjera();
+    return student->DajBrojPolozenih();
+  }
+  double DajProsjek() {
+    Provjera();
+    return student->DajProsjek();
+  }
+  void RegistrirajIspit(int ocjena) {
+    Provjera();
+    student->RegistrirajIspit(ocjena);
+  }
+  void PonistiOcjene() {
+    Provjera();
+    student->PonistiOcjene();
+  }
+  void IspisiPodatke() const {
+    Provjera();
+    student->IspisiPodatke();
+  }
+  ApstraktniStudent *DajKopiju() const {
+    Provjera();
+    return student->DajKopiju();
+  }
+};
+
+int main() { return 0; }
