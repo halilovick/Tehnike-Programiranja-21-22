@@ -1,0 +1,98 @@
+// TP 2021/2022: Zadaća 3, Zadatak 4
+#include <cmath>
+#include <iostream>
+#include <list>
+#include <set>
+#include <vector>
+
+std::vector<int> BrojIgracaPoTimu(int brojIgraca, int brojTimova) {
+  int ostatak = brojIgraca % brojTimova;
+  std::vector<int> brojigracapotimu;
+  for (int i = 0; i < brojTimova; i++) {
+    int brojigracatima = brojIgraca / brojTimova;
+    if (ostatak > 0)
+      brojigracatima++;
+    brojigracapotimu.push_back(brojigracatima);
+    ostatak--;
+  }
+  return brojigracapotimu;
+}
+
+int brojSlova(std::string rijec) {
+  int brojslova = 0, p = 0;
+  while (rijec[p] != '\0') {
+    if ((rijec[p] > 64 && rijec[p] < 91) || (rijec[p] > 96 && rijec[p] < 123) ||
+        (rijec[p] > 47 && rijec[p] < 58))
+      brojslova++;
+    p++;
+  }
+  return brojslova;
+}
+
+std::vector<std::set<std::string>> Razvrstavanje(std::vector<std::string> v,
+                                                 int brojTimova) {
+  if (brojTimova < 1 || brojTimova > v.size())
+    throw std::logic_error("Razvrstavanje nemoguce");
+  std::vector<std::set<std::string>> skup(brojTimova);
+  std::list<std::string> lista;
+  std::vector<int> brojigracapotimu = BrojIgracaPoTimu(v.size(), brojTimova);
+  for (int i = 0; i < v.size(); i++) {
+    lista.push_back(v[i]);
+  }
+  auto it = lista.begin();
+  int tim = 0, brojIgraca = 0;
+  while (lista.size() > 0) {
+    std::string ime = *it;
+    skup[tim].insert(ime);
+    brojIgraca++;
+    if (brojIgraca == brojigracapotimu[tim]) {
+      brojIgraca = 0;
+      tim++;
+    }
+    it = lista.erase(it);
+    if (it == lista.end())
+      it = lista.begin();
+    int brojslova = brojSlova(ime);
+    while (brojslova > 1) {
+      it++;
+      if (it == lista.end())
+        it = lista.begin();
+      brojslova--;
+    }
+  }
+  return skup;
+}
+
+int main() {
+  std::cout << "Unesite broj djece: ";
+  int brojDjece = 0;
+  std::cin >> brojDjece;
+  std::cout << std::endl << "Unesite imena djece: " << std::endl;
+  std::vector<std::string> v(brojDjece);
+  std::cin.ignore(10000, '\n');
+  for (int i = 0; i < brojDjece; i++) {
+    std::string ime;
+    std::cin.clear();
+    std::getline(std::cin, ime);
+    v.at(i) = ime;
+  }
+  std::cout << "Unesite broj timova: ";
+  int brojTimova(0);
+  std::cin >> brojTimova;
+  std::cout << std::endl;
+  try {
+    auto skup = Razvrstavanje(v, brojTimova);
+    for (int i = 0; i < skup.size(); i++) {
+      std::cout << "Tim " << i + 1 << ": ";
+      for (auto j = skup[i].begin(); j != skup[i].end(); j++) {
+        std::cout << *j;
+        if (j != --skup[i].end())
+          std::cout << ", ";
+      }
+      std::cout << std::endl;
+    }
+  } catch (std::logic_error e) {
+    std::cout << "Izuzetak: " << e.what();
+  }
+  return 0;
+}
