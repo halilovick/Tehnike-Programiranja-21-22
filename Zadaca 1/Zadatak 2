@@ -1,0 +1,172 @@
+// TP 2021/2022: Zadaća 1, Zadatak 2
+#include <array>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <vector>
+
+typedef std::vector<std::vector<double>> Matrica;
+
+Matrica UnesiMatricu(int n) {
+  Matrica m(n, std::vector<double>(n));
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      std::cin >> m.at(i).at(j);
+    }
+  }
+  return m;
+}
+
+Matrica MnozenjeMatrica(Matrica L, Matrica U) {
+  if (L.size() != 0) {
+    if (L.at(0).size() != U.size()) {
+      throw std::domain_error{"Matrice nisu saglasne za mnozenje!"};
+    }
+  }
+  if (U.size() != 0) {
+    if (U.at(0).size() != L.size()) {
+      throw std::domain_error{"Matrice nisu saglasne za mnozenje!"};
+    }
+  }
+  if (L.size() == 0 || U.size() == 0) {
+    Matrica prazna;
+    return prazna;
+  }
+  for (int i = 0; i < L.size() - 1; i++) {
+    if (i >= L.size()) {
+      break;
+    }
+    if (L.at(i).size() != L.at(i + 1).size()) {
+      throw std::domain_error{"Neispravna matrica!"};
+    }
+  }
+  for (int i = 0; i < U.size() - 1; i++) {
+    if (i >= U.size()) {
+      break;
+    }
+    if (U.at(i).size() != U.at(i + 1).size()) {
+      throw std::domain_error{"Neispravna matrica!"};
+    }
+  }
+  Matrica rez = Matrica(L.size(), std::vector<double>(U.at(0).size()));
+  for (int i = 0; i < L.size(); i++) {
+    for (int j = 0; j < U.at(i).size(); j++) {
+      double suma = 0;
+      for (int k = 0; k < U.size(); k++) {
+        suma += L.at(i).at(k) * U.at(k).at(j);
+      }
+      rez.at(i).at(j) = suma;
+    }
+  }
+  return rez;
+}
+
+void IspisiMatricuIzNiza(std::array<std::vector<std::vector<double>>, 2> m,
+                         int indeks = 0) {
+  for (int i = 0; i < m.at(indeks).size(); i++) {
+    for (int j = 0; j < m.at(indeks).size(); j++)
+      std::cout << m.at(indeks).at(i).at(j) << " ";
+    std::cout << std::endl;
+  }
+}
+
+std::array<std::vector<std::vector<double>>, 2> DoolittleLU(Matrica H) {
+  if (H.size() == 0) {
+    std::array<std::vector<std::vector<double>>, 2> prazna;
+    return prazna;
+  }
+  if (H.size() != H.at(0).size()) {
+    throw std::domain_error{"Matrica mora biti kvadratna!"};
+  }
+  for (int i = 0; i < H.size() - 1; i++) {
+    if (i >= H.size()) {
+      break;
+    }
+    if (H.at(i).size() != H.at(i + 1).size()) {
+      throw std::domain_error{"Neispravna matrica!"};
+    }
+  }
+  std::array<std::vector<std::vector<double>>, 2> LU;
+  const double E = pow(10, -10);
+  int n = H.size();
+  Matrica L(n, std::vector<double>(n));
+  Matrica U(n, std::vector<double>(n));
+  for (int i = 0; i < n; i++) {
+    for (int k = i; k < n; k++) {
+      double suma = 0;
+      for (int j = 0; j < i; j++) {
+        suma += (L.at(i).at(j) * U.at(j).at(k));
+      }
+      U.at(i).at(k) = H.at(i).at(k) - suma;
+    }
+    for (int k = i; k < n; k++) {
+      if (i == k) {
+        L.at(i).at(i) = 1;
+      } else {
+        double suma = 0;
+        for (int j = 0; j < i; j++) {
+          suma += (L.at(k).at(j) * U.at(j).at(i));
+        }
+        L.at(k).at(i) = (H.at(k).at(i) - suma) / U.at(i).at(i);
+      }
+    }
+  }
+  for (int i = 0; i < U.size(); i++) {
+    for (int j = 0; j < U.at(i).size(); j++) {
+      if (i == j) {
+        if (fabs(U.at(i).at(j)) < E) {
+          throw std::domain_error("Matrica je singularna!");
+        }
+      }
+    }
+  }
+  LU.at(0) = L;
+  LU.at(1) = U;
+  return LU;
+}
+
+bool ProvjeriFaktorizaciju(Matrica H,
+                           std::array<std::vector<std::vector<double>>, 2> LU) {
+  const double E = pow(10, -10);
+  int n = H.size();
+  Matrica L = LU.at(0);
+  Matrica U = LU.at(1);
+  if (L.size() != 0) {
+    if (L.at(0).size() != H.size()) {
+      return false;
+    }
+  }
+  if (U.size() != 0) {
+    if (U.at(0).size() != H.size()) {
+      return false;
+    }
+  }
+  Matrica M = MnozenjeMatrica(L, U);
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      if (fabs(M.at(i).at(j) - H.at(i).at(j)) > E) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+int main() {
+  int n = 0;
+  std::cout << "Broj redova/kolona matrice: ";
+  std::cin >> n;
+  std::cout << "Elementi matrice:" << std::endl;
+  Matrica H = UnesiMatricu(n);
+  try {
+    std::array<std::vector<std::vector<double>>, 2> LU = DoolittleLU(H);
+    std::cout << std::endl << "Matrica L: " << std::endl;
+    IspisiMatricuIzNiza(LU);
+    std::cout << std::endl << "Matrica U: " << std::endl;
+    IspisiMatricuIzNiza(LU, 1);
+  } catch (std::domain_error greska) {
+    std::cout << "LU faktorizacija ne postoji, jer je matrica singularna!";
+  }
+  return 0;
+}
